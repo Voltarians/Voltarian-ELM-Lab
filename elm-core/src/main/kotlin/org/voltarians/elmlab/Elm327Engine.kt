@@ -28,6 +28,11 @@ class Elm327Engine(
             command == "ATRV" -> "%.1fV".format(profile.supplyVoltage)
             command == "ATDP" -> if (protocol == "0") "AUTO, ISO 15765-4 (CAN 11/500)" else "ISO 15765-4 (CAN 11/500)"
             command == "ATDPN" -> if (protocol == "0") "A6" else "6"
+            command == "ATVPROFILE" -> profileSummary()
+            command.startsWith("ATVSETSPD") -> setInt(command.removePrefix("ATVSETSPD"), 0, 255) { profile.speedKph = it }
+            command.startsWith("ATVSETRPM") -> setInt(command.removePrefix("ATVSETRPM"), 0, 16_383) { profile.rpm = it }
+            command.startsWith("ATVSETTEMP") -> setInt(command.removePrefix("ATVSETTEMP"), -40, 215) { profile.coolantC = it }
+            command.startsWith("ATVSETVOLT") -> setDouble(command.removePrefix("ATVSETVOLT"), 0.0, 30.0) { profile.supplyVoltage = it }
             command.startsWith("ATSP") -> setProtocol(command.removePrefix("ATSP"))
             command.startsWith("AT") -> "OK"
             else -> obd(command)
@@ -73,6 +78,19 @@ class Elm327Engine(
     private fun setHeaders(value: Boolean): String { headers = value; return "OK" }
     private fun setSpaces(value: Boolean): String { spaces = value; return "OK" }
     private fun setProtocol(value: String): String { protocol = value.ifEmpty { "0" }; return "OK" }
+    private fun profileSummary() = "SPD=${profile.speedKph},RPM=${profile.rpm},TEMP=${profile.coolantC},VOLT=%.1f".format(profile.supplyVoltage)
+    private fun setInt(raw: String, min: Int, max: Int, update: (Int) -> Unit): String {
+        val value = raw.toIntOrNull() ?: return "?"
+        if (value !in min..max) return "?"
+        update(value)
+        return "OK"
+    }
+    private fun setDouble(raw: String, min: Double, max: Double, update: (Double) -> Unit): String {
+        val value = raw.toDoubleOrNull() ?: return "?"
+        if (value !in min..max) return "?"
+        update(value)
+        return "OK"
+    }
     private fun prompt(text: String) = "$text\r>"
 }
 
@@ -84,4 +102,3 @@ data class VehicleProfile(
     var rpm: Int = 0,
     var speedKph: Int = 0
 )
-
