@@ -8,6 +8,18 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section("Android emulator") {
+                    if !session.discoveredServers.isEmpty {
+                        ForEach(session.discoveredServers) { server in
+                            Button {
+                                session.connect(to: server)
+                            } label: {
+                                Label(server.name, systemImage: "antenna.radiowaves.left.and.right")
+                            }
+                        }
+                    } else {
+                        Label("Searching the local network…", systemImage: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                    }
                     TextField("Host or IP address", text: $session.host)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -25,6 +37,19 @@ struct ContentView: View {
                             Button("Connect") { session.connect() }
                         }
                     }
+                }
+
+                Section("Simulated vehicle") {
+                    LabeledContent("Speed", value: "\(Int(session.speedKph)) km/h")
+                    Slider(value: $session.speedKph, in: 0...200, step: 1)
+                    LabeledContent("Engine speed", value: "\(Int(session.rpm)) RPM")
+                    Slider(value: $session.rpm, in: 0...8_000, step: 50)
+                    LabeledContent("Coolant", value: "\(Int(session.coolantC)) °C")
+                    Slider(value: $session.coolantC, in: -40...150, step: 1)
+                    LabeledContent("Supply voltage", value: String(format: "%.1f V", session.supplyVoltage))
+                    Slider(value: $session.supplyVoltage, in: 8...16, step: 0.1)
+                    Button("Apply vehicle profile") { session.applyProfile() }
+                        .disabled(session.state != .connected)
                 }
 
                 Section("Command") {
@@ -57,4 +82,3 @@ struct ContentView: View {
         }
     }
 }
-
