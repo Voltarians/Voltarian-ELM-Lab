@@ -9,6 +9,7 @@ class Elm327Engine(
     private var spaces = true
     private var protocol = "0"
 
+    @Synchronized
     fun execute(rawInput: String): String {
         val command = rawInput.trim().replace(" ", "").uppercase()
         if (command.isEmpty()) return prompt("")
