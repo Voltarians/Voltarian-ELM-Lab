@@ -8,14 +8,17 @@ targets:
     type: application
     platform: iOS
     sources: [VoltarianELMCompanion]
+    info:
+      path: VoltarianELMCompanion/Info.plist
+      properties:
+        CFBundleDisplayName: Voltarian ELM Companion
+        NSLocalNetworkUsageDescription: Discovers and connects to Voltarian ELM Lab on your local network.
+        NSBonjourServices:
+          - _voltarian-elm._tcp.
+        UILaunchScreen: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.voltarians.elmlab.companion
         PRODUCT_NAME: Voltarian ELM Companion
         SWIFT_VERSION: 5.9
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Voltarian ELM Companion
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Connects to Voltarian ELM Lab on your local network.
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
-
