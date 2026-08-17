@@ -1,5 +1,7 @@
 # Voltarian ELM Lab
 
+[![Android build](https://github.com/Voltarians/Voltarian-ELM-Lab/actions/workflows/android-build.yml/badge.svg)](https://github.com/Voltarians/Voltarian-ELM-Lab/actions/workflows/android-build.yml)
+
 An open-source Android ELM327 emulator, iOS companion and vehicle simulation laboratory. It is intended to test diagnostic applications—including Voltarian—without repeatedly connecting to a vehicle.
 
 ## Current MVP
@@ -29,6 +31,10 @@ An open-source Android ELM327 emulator, iOS companion and vehicle simulation lab
 Open the project in Android Studio, allow Gradle synchronization, then run the `app` configuration on Android 8.0 or later.
 
 For iOS, see [`ios/README.md`](ios/README.md). The project specification uses XcodeGen so the Xcode project can be regenerated rather than committing machine-specific project metadata.
+
+### Download the automatic Android build
+
+Open the repository's [Android build workflow](https://github.com/Voltarians/Voltarian-ELM-Lab/actions/workflows/android-build.yml), select the newest successful run, and download the `Voltarian-ELM-Lab-debug` artifact. GitHub requires you to be signed in to download workflow artifacts.
 
 ## Testing from a second device or computer
 
