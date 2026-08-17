@@ -1,6 +1,8 @@
 package org.voltarians.elmlab.android
 
 import android.os.Bundle
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -11,6 +13,7 @@ import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     private var server: ServerSocket? = null
+    private var registrationListener: NsdManager.RegistrationListener? = null
     private val engine = Elm327Engine()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,9 +23,11 @@ class MainActivity : AppCompatActivity() {
         button.setOnClickListener {
             if (server == null) {
                 startServer(status)
+                advertiseService()
                 button.text = "Stop emulator"
             } else {
                 stopServer()
+                stopAdvertising()
                 status.text = "Stopped"
                 button.text = "Start TCP emulator"
             }
@@ -70,6 +75,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopServer() { server?.close(); server = null }
-    override fun onDestroy() { stopServer(); super.onDestroy() }
-}
 
+    private fun advertiseService() {
+        val manager = getSystemService(NSD_SERVICE) as NsdManager
+        val listener = object : NsdManager.RegistrationListener {
+            override fun onServiceRegistered(serviceInfo: NsdServiceInfo) = Unit
+            override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
+            override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) = Unit
+            override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
+        }
+        registrationListener = listener
+        manager.registerService(NsdServiceInfo().apply {
+            serviceName = "Voltarian ELM Lab"
+            serviceType = "_voltarian-elm._tcp."
+            port = 35000
+        }, NsdManager.PROTOCOL_DNS_SD, listener)
+    }
+
+    private fun stopAdvertising() {
+        val listener = registrationListener ?: return
+        runCatching { (getSystemService(NSD_SERVICE) as NsdManager).unregisterService(listener) }
+        registrationListener = null
+    }
+
+    override fun onDestroy() { stopAdvertising(); stopServer(); super.onDestroy() }
+}
