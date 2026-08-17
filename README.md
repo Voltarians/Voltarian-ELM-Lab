@@ -7,6 +7,7 @@ An open-source Android ELM327 emulator, iOS companion and vehicle simulation lab
 - Stateful, transport-independent Kotlin ELM327 engine
 - Android TCP server on port `35000`
 - SwiftUI companion for iPhone and iPad with terminal, transcript and smoke test
+- Automatic Bonjour discovery and remote simulated-vehicle controls
 - Core AT commands: reset, identity, echo, headers, spaces, voltage and protocol selection
 - OBD-II PIDs for coolant temperature, RPM, speed, module voltage and VIN
 - MIT license and unit-test foundation
@@ -15,7 +16,7 @@ An open-source Android ELM327 emulator, iOS companion and vehicle simulation lab
 
 1. Bluetooth Classic RFCOMM server transport for Android
 2. BLE GATT transport for iPhone and iPad
-3. Editable vehicle/profile dashboard and remote scenario control
+3. Saved vehicle profiles and scripted remote scenarios
 4. Scripted timeouts, malformed replies and `NO DATA` fault injection
 5. CAN and ISO-TP request/response engine
 6. Gen-1 Chevrolet Volt and Cadillac ELR simulation profiles
