@@ -1,0 +1,48 @@
+name: Publish v0.2.0-beta
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-v0.2.0-beta.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build and publish v0.2.0-beta
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.9"
+      - name: Test and build beta APK
+        run: gradle --no-daemon --stacktrace :elm-core:test :app:assembleDebug
+      - name: Name beta APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Voltarian-ELM-Lab-v0.2.0-beta.apk
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create v0.2.0-beta
+          Voltarian-ELM-Lab-v0.2.0-beta.apk
+          --target "$GITHUB_SHA"
+          --title "Voltarian ELM Lab v0.2.0-beta"
+          --notes-file RELEASE_NOTES_v0.2.0-beta.md
+          --prerelease
+
