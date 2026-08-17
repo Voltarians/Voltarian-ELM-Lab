@@ -14,9 +14,23 @@ final class ELMSession: ObservableObject {
     @Published var port = "35000"
     @Published private(set) var state: State = .disconnected
     @Published private(set) var transcript = ""
+    @Published private(set) var discoveredServers: [DiscoveredServer] = []
+    @Published var speedKph = 0.0
+    @Published var rpm = 0.0
+    @Published var coolantC = 82.0
+    @Published var supplyVoltage = 12.4
 
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "org.voltarians.elmlab.ios.network")
+    private var browser: NWBrowser?
+
+    struct DiscoveredServer: Identifiable, Hashable {
+        let name: String
+        let endpoint: NWEndpoint
+        var id: String { "\(endpoint)" }
+    }
+
+    init() { startDiscovery() }
 
     func connect() {
         disconnect()
@@ -27,27 +41,15 @@ final class ELMSession: ObservableObject {
         }
 
         state = .connecting
-        let connection = NWConnection(host: NWEndpoint.Host(host), port: endpointPort, using: .tcp)
-        self.connection = connection
-        connection.stateUpdateHandler = { [weak self] newState in
-            Task { @MainActor in
-                guard let self else { return }
-                switch newState {
-                case .ready:
-                    self.state = .connected
-                    self.append("Connected to \(self.host):\(self.port)")
-                    self.receive()
-                case .failed(let error):
-                    self.state = .failed
-                    self.append("Connection failed: \(error.localizedDescription)")
-                case .cancelled:
-                    self.state = .disconnected
-                default:
-                    break
-                }
-            }
-        }
-        connection.start(queue: queue)
+        append("Connecting to \(host):\(port)")
+        startConnection(NWConnection(host: NWEndpoint.Host(host), port: endpointPort, using: .tcp))
+    }
+
+    func connect(to server: DiscoveredServer) {
+        disconnect()
+        state = .connecting
+        append("Connecting to \(server.name)")
+        startConnection(NWConnection(to: server.endpoint, using: .tcp))
     }
 
     func disconnect() {
@@ -77,6 +79,14 @@ final class ELMSession: ObservableObject {
         }
     }
 
+    func applyProfile() {
+        send("ATVSETSPD\(Int(speedKph))")
+        send("ATVSETRPM\(Int(rpm))")
+        send("ATVSETTEMP\(Int(coolantC))")
+        send("ATVSETVOLT\(String(format: "%.1f", supplyVoltage))")
+        send("ATVPROFILE")
+    }
+
     func clearTranscript() { transcript = "" }
 
     private func receive() {
@@ -92,9 +102,42 @@ final class ELMSession: ObservableObject {
         }
     }
 
+    private func startDiscovery() {
+        let browser = NWBrowser(for: .bonjour(type: "_voltarian-elm._tcp", domain: nil), using: .tcp)
+        self.browser = browser
+        browser.browseResultsChangedHandler = { [weak self] results, _ in
+            let servers = results.compactMap { result -> DiscoveredServer? in
+                guard case let .service(name, _, _, _) = result.endpoint else { return nil }
+                return DiscoveredServer(name: name, endpoint: result.endpoint)
+            }.sorted { $0.name < $1.name }
+            Task { @MainActor in self?.discoveredServers = servers }
+        }
+        browser.start(queue: queue)
+    }
+
+    private func startConnection(_ connection: NWConnection) {
+        self.connection = connection
+        connection.stateUpdateHandler = { [weak self] newState in
+            Task { @MainActor in
+                guard let self else { return }
+                switch newState {
+                case .ready:
+                    self.state = .connected
+                    self.append("Connected")
+                    self.receive()
+                case .failed(let error):
+                    self.state = .failed
+                    self.append("Connection failed: \(error.localizedDescription)")
+                case .cancelled: self.state = .disconnected
+                default: break
+                }
+            }
+        }
+        connection.start(queue: queue)
+    }
+
     private func append(_ line: String) {
         guard !line.isEmpty else { return }
         transcript += transcript.isEmpty ? line : "\n\(line)"
     }
 }
-
