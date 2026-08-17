@@ -4,6 +4,8 @@
 
 [Download the latest public release](https://github.com/Voltarians/Voltarian-ELM-Lab/releases/latest)
 
+[Download the Bluetooth beta](https://github.com/Voltarians/Voltarian-ELM-Lab/releases/tag/v0.2.0-beta)
+
 An open-source Android ELM327 emulator, iOS companion and vehicle simulation laboratory. It is intended to test diagnostic applications—including Voltarian—without repeatedly connecting to a vehicle.
 
 ## Current MVP
