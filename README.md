@@ -2,6 +2,8 @@
 
 [![Android build](https://github.com/Voltarians/Voltarian-ELM-Lab/actions/workflows/android-build.yml/badge.svg)](https://github.com/Voltarians/Voltarian-ELM-Lab/actions/workflows/android-build.yml)
 
+[Download the latest public release](https://github.com/Voltarians/Voltarian-ELM-Lab/releases/latest)
+
 An open-source Android ELM327 emulator, iOS companion and vehicle simulation laboratory. It is intended to test diagnostic applications—including Voltarian—without repeatedly connecting to a vehicle.
 
 ## Current MVP
