@@ -17,6 +17,7 @@ An open-source Android ELM327 emulator, iOS companion and vehicle simulation lab
 - Automatic Bonjour discovery and remote simulated-vehicle controls
 - Core AT commands: reset, identity, echo, headers, spaces, voltage and protocol selection
 - OBD-II PIDs for coolant temperature, RPM, speed, module voltage and VIN
+- Deterministic `ATMA` reliability stream: 3,000 numbered CAN frames at 100 fps over 30 seconds
 - MIT license and unit-test foundation
 
 ## Roadmap
@@ -48,6 +49,10 @@ Open the repository's [Android build workflow](https://github.com/Voltarians/Vol
 4. Send commands terminated by carriage return, for example `ATI\r` or `010D\r`.
 
 The emulator must never be treated as safety-certified vehicle equipment. Gateway mode should remain read-only by default and require explicit authorization for writes.
+
+### Voltarian capture reliability test
+
+Connect Voltarian to the emulator and start raw CAN logging. The emulator answers `ATMA` with 3,000 frames on CAN ID `0x7E8`, numbered from 0 through 2,999 in the first four data bytes, then returns the ELM prompt. Accept the run only when Voltarian records 3,000 valid frames in both CSV and candump output with zero malformed frames, adapter overflows and storage write errors.
 
 ## Contributing
 
