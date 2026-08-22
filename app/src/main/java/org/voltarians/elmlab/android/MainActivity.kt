@@ -19,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import org.voltarians.elmlab.Elm327Engine
+import org.voltarians.elmlab.ReliabilityTestStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.ServerSocket
@@ -156,14 +157,43 @@ class MainActivity : AppCompatActivity() {
             if (byte.toChar() == '\r' || byte.toChar() == '\n') {
                 if (command.isNotEmpty()) {
                     val value = command.toString()
-                    val response = engine.execute(value)
-                    output.write(response.toByteArray())
-                    output.flush()
-                    updateDetails("$transport: $value → ${response.lineSequence().firstOrNull().orEmpty()}")
+                    if (value.trim().replace(" ", "").equals("ATMA", ignoreCase = true)) {
+                        runReliabilityTestStream(output, transport)
+                    } else {
+                        val response = engine.execute(value)
+                        output.write(response.toByteArray())
+                        output.flush()
+                        updateDetails("$transport: $value → ${response.lineSequence().firstOrNull().orEmpty()}")
+                    }
                     command.clear()
                 }
             } else command.append(byte.toChar())
         }
+    }
+
+    private fun runReliabilityTestStream(output: OutputStream, transport: String) {
+        updateDetails(
+            "$transport: reliability stream — ${ReliabilityTestStream.expectedFrames} frames at " +
+                "${ReliabilityTestStream.framesPerSecond} fps for ${ReliabilityTestStream.durationSeconds}s"
+        )
+        val startedNanos = System.nanoTime()
+        for (sequence in 0 until ReliabilityTestStream.expectedFrames) {
+            val targetNanos = startedNanos + sequence * ReliabilityTestStream.intervalNanos
+            while (true) {
+                val remainingNanos = targetNanos - System.nanoTime()
+                if (remainingNanos <= 0) break
+                val millis = remainingNanos / 1_000_000
+                val nanos = (remainingNanos % 1_000_000).toInt()
+                Thread.sleep(millis, nanos)
+            }
+            output.write("${ReliabilityTestStream.frame(sequence)}\r".toByteArray())
+            if (sequence % ReliabilityTestStream.framesPerSecond == 0) output.flush()
+        }
+        output.write(">".toByteArray())
+        output.flush()
+        updateDetails(
+            "$transport: reliability stream complete — expected ${ReliabilityTestStream.expectedFrames} frames"
+        )
     }
 
     private fun advertiseNetworkService() {
