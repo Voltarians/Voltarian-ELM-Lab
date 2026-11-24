@@ -10,8 +10,15 @@ android {
         applicationId = "org.voltarians.elmlab"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-beta"
+        versionCode = 3
+        versionName = "0.3.0-beta"
+        manifestPlaceholders["appLabel"] = "ELM Lab"
+    }
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".beta"
+            manifestPlaceholders["appLabel"] = "ELM Lab Beta"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -23,6 +30,8 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     implementation(project(":elm-core"))
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
