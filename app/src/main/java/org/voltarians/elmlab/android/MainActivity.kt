@@ -126,7 +126,8 @@ class MainActivity : AppCompatActivity() {
         }
         heading("Response faults", 22f)
         faults = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Normal", "NO DATA", "CAN ERROR", "Malformed data")) }; content.addView(faults)
-        addField("delay", "Response delay (0–5000 ms)")
+        addField("delay", "ECU response latency (0–5000 ms)")
+        heading("Latency longer than the client timeout produces NO DATA. Adapter commands remain immediate.", 14f)
         heading("Custom response sequences", 22f)
         heading("JSON maps hex requests to response text arrays. Example: {\"010D\":[\"41 0D 00\",\"41 0D 28\"]}. Each connection advances independently, then repeats the last response. Text is sent exactly as entered, without an added header or prompt. Clear to use built-in responses.", 14f)
         script = EditText(this).apply { filters = arrayOf(android.text.InputFilter.LengthFilter(65536)); minLines = 3; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE; content.addView(this) }
@@ -162,7 +163,7 @@ class MainActivity : AppCompatActivity() {
         heading("Profiles and logs stay on your device unless you export them. TCP accepts connections from devices on the same network while running. No real vehicle connection is required.", 14f)
         button("About ELM Lab") {
             val license = assets.open("LICENSE.txt").bufferedReader().use { it.readText() }
-            AlertDialog.Builder(this).setTitle("ELM Lab 0.3.0 beta").setMessage("General-purpose OBD-II simulator.\n\nNo account, analytics, or in-app purchases. Profiles and logs remain local unless exported.\n\n$license").setPositiveButton("Close", null).show()
+            AlertDialog.Builder(this).setTitle("ELM Lab 0.4.0 beta").setMessage("General-purpose OBD-II simulator.\n\nNo account, analytics, or in-app purchases. Profiles and logs remain local unless exported.\n\n$license").setPositiveButton("Close", null).show()
         }
         refreshProfiles()
         val restored = savedInstanceState?.getString("draft")?.let { runCatching { LabStore.decode(it) }.getOrNull() }

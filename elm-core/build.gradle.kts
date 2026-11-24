@@ -12,3 +12,11 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
+
+// Produces a classpath for the independent python-OBD probe without holding Gradle open.
+tasks.register("compatibilityClasspath") {
+    dependsOn(tasks.testClasses)
+    val target = layout.buildDirectory.file("compatibility-classpath.txt")
+    outputs.file(target)
+    doLast { target.get().asFile.writeText(sourceSets.test.get().runtimeClasspath.asPath) }
+}

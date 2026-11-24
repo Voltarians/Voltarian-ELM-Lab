@@ -2,7 +2,7 @@
 
 A general-purpose Android test adapter for diagnostic app developers, instructors, and technicians. Run simulated vehicle responses on a phone without connecting to a vehicle. Independent of any particular car manufacturer or diagnostic client.
 
-## Version 0.3.0 beta
+## Version 0.4.0 beta
 
 - TCP on port `35000`, Bluetooth Classic SPP, and local-network discovery.
 - User-started foreground service with a Stop notification; keeps connections outside the activity lifecycle.
@@ -11,7 +11,7 @@ A general-purpose Android test adapter for diagnostic app developers, instructor
 - Editable VIN, speed, RPM, temperatures, adapter/module voltage, engine load, airflow, throttle, runtime, and fuel.
 - Stored, pending, and permanent DTCs; emissions clear; readiness; one captured freeze frame.
 - Local saved profiles with JSON import/export and input validation.
-- Response delay, `NO DATA`, `CAN ERROR`, and malformed-data injection.
+- ECU latency and client-timeout simulation, `NO DATA`, `CAN ERROR`, and malformed-data injection.
 - Custom response sequences, command logging, and export of recorded response profiles.
 
 This is a beta implementation, not a claim of universal scan-tool compatibility. No billing, subscriptions, ads, or analytics are included.
@@ -39,9 +39,9 @@ The built-in ECU uses ISO 15765-4, 11-bit / 500 kbit/s. This is an application-l
 | Modes 03/07/0A | Stored, pending, permanent codes |
 | Mode 04 | Clears stored/pending codes and freeze frame; resets readiness; preserves permanent codes |
 | Mode 09 | Supported-PID page and VIN |
-| Adapter commands | Z, WS, D, I, @1, @2, E0/1, H0/1, S0/1, L0/1, RV, DP, DPN, SP0/6/A6, SH, CRA |
+| Adapter commands | Z, WS, D, I, @1, @2, E0/1, H0/1, S0/1, L0/1, RV, DP, DPN, SP0/00/6/A6, TP0/6/A6, SH, CRA, CF, CM, AR, CAF0/1, CFC0/1, D0/1, R0/1, AL, NL, M0/1, PC, AT0/1/2, ST |
 
-Unsupported AT commands return `?`; unsupported diagnostic requests return `NO DATA`. PID bitmaps reflect built-in responses. Receive addresses other than 7E8 and request addresses other than 7DF/7E0 yield no data. Headers include ISO-TP PCI bytes; unheaded multiline responses include a length line and numbered rows. Flow control is simulated internally, not over a CAN bus. Only the documented CAN protocol is implemented.
+Unsupported AT commands return `?`; unsupported diagnostic requests return `NO DATA`. PID bitmaps reflect built-in responses. Receive filters/masks can include or exclude ECU 7E8; request addresses other than 7DF/7E0 yield no data. Headers include ISO-TP PCI bytes and eight-byte CAN padding; unheaded multiline responses include a length line and numbered rows. Automatic flow control is simulated internally. In raw CAF0 mode, basic manual CTS/block-size, WAIT, and overflow are supported; nonzero STmin is explicitly rejected. No physical CAN bus is used. Only the documented CAN protocol is implemented.
 
 Legacy remote controls `ATVPROFILE`, `ATVSETSPD`, `ATVSETRPM`, `ATVSETTEMP`, and `ATVSETVOLT` remain for companion compatibility.
 
@@ -58,9 +58,19 @@ The editor accepts JSON such as:
 
 Keys are uppercase, even-length hex requests. Responses contain exact adapter text without echo or the `>` prompt. Include headers and line breaks yourself if the client expects them; adapter formatting settings do not rewrite custom responses. A matching sequence advances per request and per connection, then repeats its final entry. Reapplying a profile or resetting the adapter restarts its sequences. Global fault injection and address filters take precedence.
 
-**Export recorded response profile** groups the latest diagnostic responses by request into sequences. Import that JSON, apply it, and reconnect the client for a repeatable response test. This replays responses per command; it does not reproduce original timing, cross-command ordering, physical CAN traffic, or state changes caused by overridden commands. Adapter initialization commands are not recorded into response sequences. **Clear command log** also clears the recording. This is distinct from importing arbitrary third-party CAN capture formats, which is not implemented.
+**Export recorded response profile** groups the latest diagnostic responses by logical request into sequences, including repeated queries. It removes response-count suffixes and raw request PCI bytes from those keys, and excludes adapter initialization, flow-control packets, echo, and the generated SEARCHING line. Import that JSON, apply it, and reconnect the client for a repeatable response test. This replays responses per command; it does not reproduce original timing, cross-command ordering, physical CAN traffic, or state changes caused by overridden commands. Adapter initialization commands are not recorded into response sequences. **Clear command log** also clears the recording. This is distinct from importing arbitrary third-party CAN capture formats, which is not implemented.
 
-Maximum script: 128 requests, 500 responses, 4096 characters per response. Imported profiles are limited to 64 KiB. Use the delay field for a uniform 0–5000 ms response delay.
+Maximum script: 128 requests, 500 responses, 4096 characters per response. Imported profiles are limited to 64 KiB. The latency field simulates 0–5000 ms ECU response time. If it exceeds the active client timeout, the client sees `NO DATA`. AT commands are immediate.
+
+## Adapter behavior and timing
+
+`ATSThh` sets a maximum timeout of `hh * 4 ms`; `ATST00` restores 200 ms. `ATAT0` uses that fixed wait; `ATAT1/2` use a deterministic simulated learned wait with backoff after timeouts. This is a useful test model, not a reproduction of Elm Electronics' proprietary adaptive algorithm. Without a response-count suffix, the plan includes a wait for additional responses. A count suffix such as `010D1` removes that wait and caps the returned CAN frames.
+
+`ATCAF0` requires a raw single-frame PCI byte, for example `02010D`. Displayed raw CAN frames include padding. CAF1 requests are limited to seven payload bytes (up to six Mode 01 PIDs); raw CAF0 frames allow eight bytes without requiring AL. AL/NL are accepted length settings but do not change these CAN limits. Multi-frame outgoing requests, CAN extended addressing, and nonzero manual flow-control separation times are not implemented. Unsupported AT commands still return `?`.
+
+`ATM0/1` control protocol memory across resets **within a connection**. Each new connection starts a new adapter session; protocol selection is not persisted across app restarts or reconnects. `ATTP6` tries protocol 6 without replacing the saved selection. `ATPC` closes the simulated protocol so an automatic connection searches again on its next diagnostic request.
+
+See [the compatibility matrix](docs/COMPATIBILITY.md) for independently verified behavior and remaining limitations.
 
 ## Build and validate
 
@@ -75,6 +85,17 @@ On Windows, use `.\gradlew.bat` with the same task arguments.
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 The debug beta installs as **ELM Lab Beta** (`org.voltarians.elmlab.beta`) alongside the earlier app. The release application ID remains `org.voltarians.elmlab`. Subsequent beta updates require the same signing key. Store release signing, final branding/assets, full third-party notices, current store-policy review, and commercial pricing/payment work remain before publication. No store release is configured by this change.
+
+## Independent client probe
+
+After installing the optional development dependency `obd==0.7.3`, run:
+
+```sh
+./gradlew :elm-core:compatibilityClasspath
+python tools/compatibility_probe.py
+```
+
+The probe starts a JVM loopback server using the same engine and stream parser as Android, then connects with python-OBD. Its JSON report is written under `elm-core/build/reports/`. This is a host protocol test; it does not replace physical Android TCP/SPP testing. python-OBD is an external test dependency and is not bundled in the APK.
 
 ## iOS companion
 

@@ -4,7 +4,7 @@ import java.util.Locale
 import kotlin.test.*
 
 class Elm327EngineTest {
-    private fun engine(p: VehicleProfile = VehicleProfile()) = Elm327Engine(p).also { it.execute("ATE0") }
+    private fun engine(p: VehicleProfile = VehicleProfile()) = Elm327Engine(p).also { it.execute("ATE0"); it.execute("ATSP6") }
     @Test fun identityAndPrompt() = assertEquals("ATI\rELM327 v1.5\r>", Elm327Engine().execute("ATI"))
     @Test fun echoTransitionUsesPreviousSetting() {
         val e = Elm327Engine()
@@ -45,29 +45,29 @@ class Elm327EngineTest {
     }
     @Test fun clearCodesKeepsPermanentAndResetsReadiness() {
         val e = engine(VehicleProfile.presets().first { it.name == "Engine fault" })
-        assertEquals("43 03 00 01 71\r>", e.execute("03"))
-        assertEquals("47 03 01\r>", e.execute("07"))
-        assertEquals("4A 03 00\r>", e.execute("0A"))
+        assertEquals("43 02 03 00 01 71\r>", e.execute("03"))
+        assertEquals("47 01 03 01\r>", e.execute("07"))
+        assertEquals("4A 01 03 00\r>", e.execute("0A"))
         assertTrue(e.execute("0101").startsWith("41 01 82"))
         assertEquals("42 0C 00 0E D8\r>", e.execute("020C00"))
         assertEquals("44\r>", e.execute("04"))
-        assertEquals("43 00 00\r>", e.execute("03"))
-        assertEquals("47 00 00\r>", e.execute("07"))
-        assertEquals("4A 03 00\r>", e.execute("0A"))
+        assertEquals("43 00\r>", e.execute("03"))
+        assertEquals("47 00\r>", e.execute("07"))
+        assertEquals("4A 01 03 00\r>", e.execute("0A"))
         assertEquals("NO DATA\r>", e.execute("020C00"))
         assertEquals("41 01 00 77 65 65\r>", e.execute("0101"))
     }
     @Test fun dtcFamiliesEncodeCorrectly() {
         val e = engine(VehicleProfile(storedDtcs = listOf("P0300", "C1234", "B2345", "U0100")))
         e.execute("ATH1")
-        assertEquals("7E8 10 09 43 03 00 52 34 A3\r7E8 21 45 C1 00\r>", e.execute("03"))
+        assertEquals("7E8 10 0A 43 04 03 00 52 34\r7E8 21 A3 45 C1 00 00 00 00\r>", e.execute("03"))
     }
     @Test fun headerAndSpaceSettingsApplyToWholeFrame() {
         val e = engine(VehicleProfile(speedKph = 42))
         e.execute("ATH1")
-        assertEquals("7E8 03 41 0D 2A\r>", e.execute("010D"))
+        assertEquals("7E8 03 41 0D 2A 00 00 00 00\r>", e.execute("010D"))
         e.execute("ATS0")
-        assertEquals("7E803410D2A\r>", e.execute("010D"))
+        assertEquals("7E803410D2A00000000\r>", e.execute("010D"))
     }
     @Test fun vinUsesIsoTpFramesWhenHeadersEnabled() {
         val e = engine()
@@ -85,8 +85,8 @@ class Elm327EngineTest {
     @Test fun eachSessionKeepsIndependentSettings() {
         val shared = SimulationState()
         val a = Elm327Engine(shared); val b = Elm327Engine(shared)
-        a.execute("ATE0"); a.execute("ATH1"); a.execute("ATVSETSPD88")
-        assertEquals("7E8 03 41 0D 58\r>", a.execute("010D"))
+        a.execute("ATE0"); a.execute("ATSP6"); b.execute("ATSP6"); a.execute("ATH1"); a.execute("ATVSETSPD88")
+        assertEquals("7E8 03 41 0D 58 00 00 00 00\r>", a.execute("010D"))
         assertEquals("010D\r41 0D 58\r>", b.execute("010D"))
         a.execute("ATZ")
         assertEquals(88, shared.snapshot().speedKph)
@@ -130,7 +130,7 @@ class Elm327EngineTest {
         val p = VehicleProfile(responseScript = mapOf("010D" to listOf("41 0D 00", "41 0D 28")))
         val shared = SimulationState(p)
         val a = Elm327Engine(shared); val b = Elm327Engine(shared)
-        a.execute("ATE0"); b.execute("ATE0")
+        a.execute("ATE0"); b.execute("ATE0"); a.execute("ATSP6"); b.execute("ATSP6")
         assertEquals("41 0D 00\r>", a.execute("010D"))
         assertEquals("41 0D 28\r>", a.execute("010D"))
         assertEquals("41 0D 28\r>", a.execute("010D"))

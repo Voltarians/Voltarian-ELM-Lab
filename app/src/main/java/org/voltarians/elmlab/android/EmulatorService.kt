@@ -17,7 +17,6 @@ import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.ServerSocket
-import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -126,32 +125,15 @@ class EmulatorService : Service() {
     }
 
     private fun handle(input: InputStream, output: OutputStream, transport: String, token: Long) {
-        val engine = Elm327Engine(simulation)
-        val command = StringBuilder()
-        var lastWasCr = false
         record("$transport client connected")
-        while (running && token == generation && !Thread.currentThread().isInterrupted) {
-            val byte = input.read()
-            if (byte < 0) break
-            if (byte == 10 && lastWasCr) { lastWasCr = false; continue }
-            lastWasCr = byte == 13
-            if (byte == 13 || byte == 10) {
-                val value = command.toString()
-                command.clear()
-                val delay = simulation.snapshot().responseDelayMs
-                if (delay > 0) Thread.sleep(delay.toLong())
-                val response = engine.execute(value)
-                output.write(response.toByteArray(Charsets.US_ASCII)); output.flush()
-                val normalized = value.replace(" ", "").uppercase(java.util.Locale.ROOT)
-                if (normalized.matches(Regex("(?:[0-9A-F]{2}){1,32}"))) {
-                    val clean = response.replace("\r\n", "\r").removePrefix("$normalized\r").removeSuffix("\r>")
-                    synchronized(recording) { if (recording.size >= 500) recording.removeFirst(); recording.addLast(normalized to clean) }
-                }
-                record("$transport > $value\n< ${response.replace("\r", " ").replace("\n", " ")}")
-            } else {
-                if (byte !in 32..126 || command.length >= 512) return
-                command.append(byte.toChar())
+        val engine = Elm327Engine(simulation)
+        ElmStreamSession(engine).serve(input, output, { running && token == generation }) { value, response ->
+            val normalized = engine.lastDiagnosticRequest
+            if (normalized != null && normalized.matches(Regex("(?:[0-9A-F]{2}){1,32}"))) {
+                val clean = response.replace("\r\n", "\r").removePrefix("${engine.lastExecutedCommand}\r").removePrefix("SEARCHING...\r").removeSuffix("\r>")
+                synchronized(recording) { if (recording.size >= 500) recording.removeFirst(); recording.addLast(normalized to clean) }
             }
+            record("$transport > $value\n< ${response.replace("\r", " ").replace("\n", " ")}")
         }
     }
 
