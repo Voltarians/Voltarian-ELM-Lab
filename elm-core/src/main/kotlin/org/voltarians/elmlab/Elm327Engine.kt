@@ -238,8 +238,14 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
         0x2F -> listOf(percent(p.fuelPercent))
         0x42 -> word((p.controlModuleVoltage * 1000).roundToInt())
         0x46 -> listOf(p.ambientC + 40)
-        0x45 -> listOf(percent(p.throttlePercent))
-        0x4C -> listOf(percent(p.throttlePercent))
+        0x13 -> listOf(0x03)
+        0x14 -> listOf((p.oxygenSensor1V * 200).roundToInt(), (p.shortFuelTrim * 1.28 + 128).roundToInt())
+        0x15 -> listOf((p.oxygenSensor2V * 200).roundToInt(), 255)
+        0x45 -> listOf(percent(p.relativeThrottlePercent))
+        0x47 -> listOf(percent(p.throttleBPercent))
+        0x49 -> listOf(percent(p.pedalDPercent))
+        0x4A -> listOf(percent(p.pedalEPercent))
+        0x4C -> listOf(percent(p.commandedThrottlePercent))
         else -> null
     }
 
@@ -320,7 +326,7 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
     }
     private fun percent(value: Int) = (value * 255.0 / 100).roundToInt()
     private fun word(value: Int) = listOf((value shr 8) and 255, value and 255)
-    companion object { private val SUPPORTED = setOf(1, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 31, 32, 47, 51, 64, 66, 69, 70, 76, 92, 94) }
+    companion object { private val SUPPORTED = setOf(1, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 31, 32, 47, 51, 64, 66, 69, 70, 71, 73, 74, 76, 92, 94) }
 }
 
 data class AdapterReply(val text: String, val delayMs: Int)
