@@ -23,9 +23,19 @@ data class VehicleProfile(
     var freezeFrame: FreezeFrame? = null,
     var responseDelayMs: Int = 0,
     var fault: ResponseFault = ResponseFault.NONE,
-    var responseScript: Map<String, List<String>> = emptyMap()
+    var responseScript: Map<String, List<String>> = emptyMap(),
+    var manifoldKpa: Int = 35,
+    var barometricKpa: Int = 101,
+    var oilC: Int = 85,
+    var timingDegrees: Double = 10.0,
+    var fuelRateLph: Double = 0.8,
+    var shortFuelTrim: Double = 0.0,
+    var longFuelTrim: Double = 0.0
 ) {
     fun validate() {
+        require(manifoldKpa in 0..255 && barometricKpa in 0..255 && oilC in -40..215)
+        require(timingDegrees in -64.0..63.5 && fuelRateLph in 0.0..3276.75)
+        require(shortFuelTrim in -100.0..99.21875 && longFuelTrim in -100.0..99.21875)
         require(name.isNotBlank() && name.length <= 80) { "Profile name must contain 1–80 characters" }
         require(vin.matches(Regex("[A-HJ-NPR-Z0-9]{17}"))) { "VIN must be 17 uppercase VIN characters" }
         require(supplyVoltage.isFinite() && supplyVoltage in 0.0..30.0) { "Supply voltage must be 0–30 V" }
