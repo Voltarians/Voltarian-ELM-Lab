@@ -30,9 +30,18 @@ data class VehicleProfile(
     var timingDegrees: Double = 10.0,
     var fuelRateLph: Double = 0.8,
     var shortFuelTrim: Double = 0.0,
-    var longFuelTrim: Double = 0.0
+    var longFuelTrim: Double = 0.0,
+    var oxygenSensor1V: Double = 0.45,
+    var oxygenSensor2V: Double = 0.65,
+    var relativeThrottlePercent: Int = 10,
+    var commandedThrottlePercent: Int = 15,
+    var throttleBPercent: Int = 15,
+    var pedalDPercent: Int = 0,
+    var pedalEPercent: Int = 0
 ) {
     fun validate() {
+        require(oxygenSensor1V in 0.0..1.275 && oxygenSensor2V in 0.0..1.275)
+        require(listOf(relativeThrottlePercent, commandedThrottlePercent, throttleBPercent, pedalDPercent, pedalEPercent).all { it in 0..100 })
         require(manifoldKpa in 0..255 && barometricKpa in 0..255 && oilC in -40..215)
         require(timingDegrees in -64.0..63.5 && fuelRateLph in 0.0..3276.75)
         require(shortFuelTrim in -100.0..99.21875 && longFuelTrim in -100.0..99.21875)
