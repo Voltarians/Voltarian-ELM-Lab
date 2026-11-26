@@ -222,6 +222,13 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
         0x03 -> listOf(if (p.rpm == 0) 0 else if (p.coolantC < 70) 1 else 2, 0)
         0x04 -> listOf(percent(p.engineLoadPercent))
         0x05 -> listOf(p.coolantC + 40)
+        0x06 -> listOf((p.shortFuelTrim * 1.28 + 128).roundToInt())
+        0x07 -> listOf((p.longFuelTrim * 1.28 + 128).roundToInt())
+        0x0B -> listOf(p.manifoldKpa)
+        0x0E -> listOf(((p.timingDegrees + 64) * 2).roundToInt())
+        0x33 -> listOf(p.barometricKpa)
+        0x5C -> listOf(p.oilC + 40)
+        0x5E -> word((p.fuelRateLph * 20).roundToInt())
         0x0C -> word(p.rpm * 4)
         0x0D -> listOf(p.speedKph)
         0x0F -> listOf(p.intakeC + 40)
@@ -313,7 +320,7 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
     }
     private fun percent(value: Int) = (value * 255.0 / 100).roundToInt()
     private fun word(value: Int) = listOf((value shr 8) and 255, value and 255)
-    companion object { private val SUPPORTED = setOf(1, 3, 4, 5, 12, 13, 15, 16, 17, 31, 32, 47, 64, 66, 69, 70, 76) }
+    companion object { private val SUPPORTED = setOf(1, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 31, 32, 47, 51, 64, 66, 69, 70, 76, 92, 94) }
 }
 
 data class AdapterReply(val text: String, val delayMs: Int)
