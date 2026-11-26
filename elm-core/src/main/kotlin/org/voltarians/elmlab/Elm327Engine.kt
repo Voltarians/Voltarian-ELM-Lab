@@ -38,6 +38,7 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
     private var pendingFrames: List<List<Int>> = emptyList()
     private var pendingRevision = 0L
     private var replyDelayMs = 0
+    private var voltageCalibration: Double? = null
     private val scriptPositions = mutableMapOf<String, Int>()
     private var scriptRevision = state.revision()
 
@@ -86,7 +87,12 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
                 learnedTimeoutMs = timeoutMs
                 "OK"
             }
-            command == "ATRV" -> String.format(Locale.US, "%.1fV", profile.supplyVoltage)
+            command == "ATRV" -> String.format(Locale.US, "%.1fV", (profile.supplyVoltage + (voltageCalibration ?: 0.0)).coerceAtLeast(0.0))
+            command == "ATCV0000" -> { voltageCalibration = null; "OK" }
+            command.matches(Regex("ATCV[0-9]{4}")) -> {
+                val voltage = command.takeLast(4).toInt() / 100.0
+                if (voltage !in 0.01..30.0) "?" else { voltageCalibration = voltage - profile.supplyVoltage; "OK" }
+            }
             command == "ATDP" -> if (!connected && protocol != "6") "AUTO" else (if (protocol != "6") "AUTO, " else "") + "ISO 15765-4 (CAN 11/500)"
             command == "ATDPN" -> if (protocol == "6") "6" else if (connected) "A6" else "0"
             command.startsWith("ATSP") || command.startsWith("ATTP") -> selectProtocol(command)
