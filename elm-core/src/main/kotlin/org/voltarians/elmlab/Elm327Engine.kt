@@ -219,6 +219,7 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
         0x00, 0x20, 0x40 -> bitmap(pid)
         // Generic spark ignition: misfire, fuel, components + catalyst, evap and O2.
         0x01 -> listOf((if (p.storedDtcs.isNotEmpty()) 0x80 else 0) or p.storedDtcs.size.coerceAtMost(127), if (p.monitorsComplete) 0x07 else 0x77, 0x65, if (p.monitorsComplete) 0 else 0x65)
+        0x03 -> listOf(if (p.rpm == 0) 0 else if (p.coolantC < 70) 1 else 2, 0)
         0x04 -> listOf(percent(p.engineLoadPercent))
         0x05 -> listOf(p.coolantC + 40)
         0x0C -> word(p.rpm * 4)
@@ -230,6 +231,8 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
         0x2F -> listOf(percent(p.fuelPercent))
         0x42 -> word((p.controlModuleVoltage * 1000).roundToInt())
         0x46 -> listOf(p.ambientC + 40)
+        0x45 -> listOf(percent(p.throttlePercent))
+        0x4C -> listOf(percent(p.throttlePercent))
         else -> null
     }
 
@@ -310,7 +313,7 @@ class Elm327Engine(val state: SimulationState = SimulationState()) {
     }
     private fun percent(value: Int) = (value * 255.0 / 100).roundToInt()
     private fun word(value: Int) = listOf((value shr 8) and 255, value and 255)
-    companion object { private val SUPPORTED = setOf(1, 4, 5, 12, 13, 15, 16, 17, 31, 32, 47, 64, 66, 70) }
+    companion object { private val SUPPORTED = setOf(1, 3, 4, 5, 12, 13, 15, 16, 17, 31, 32, 47, 64, 66, 69, 70, 76) }
 }
 
 data class AdapterReply(val text: String, val delayMs: Int)
