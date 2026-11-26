@@ -172,4 +172,15 @@ class Elm327EngineTest {
         kotlin.test.assertTrue(engine.execute("ATCV0000").contains("OK"))
         kotlin.test.assertTrue(engine.execute("ATRV").contains("13.4V"))
     }
+    @Test fun fuelSystemAndThrottlePids() {
+        val e = engine(VehicleProfile(rpm = 800, coolantC = 82, throttlePercent = 40))
+        assertEquals("41 03 02 00\r>", e.execute("0103"))
+        assertEquals("41 45 66\r>", e.execute("0145"))
+        assertEquals("41 4C 66\r>", e.execute("014C"))
+        assertEquals("41 40 4C 10 00 00\r>", e.execute("0140"))
+        e.state.update { it.coolantC = 20 }
+        assertEquals("41 03 01 00\r>", e.execute("0103"))
+        e.state.update { it.rpm = 0 }
+        assertEquals("41 03 00 00\r>", e.execute("0103"))
+    }
 }
