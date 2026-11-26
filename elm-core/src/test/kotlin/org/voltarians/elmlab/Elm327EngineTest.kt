@@ -162,4 +162,14 @@ class Elm327EngineTest {
         assertEquals(e.profile.vin, payload.drop(3).map { it.toChar() }.joinToString(""))
     }
 
+    @Test fun voltageCalibrationTracksSupplyChanges() {
+        val engine = Elm327Engine(VehicleProfile(supplyVoltage = 12.4))
+        kotlin.test.assertTrue(engine.execute("ATCV1300").contains("OK"))
+        kotlin.test.assertTrue(engine.execute("ATRV").contains("13.0V"))
+        engine.state.update { it.supplyVoltage = 13.4 }
+        kotlin.test.assertTrue(engine.execute("ATRV").contains("14.0V"))
+        kotlin.test.assertTrue(engine.execute("ATCV9999").contains("?"))
+        kotlin.test.assertTrue(engine.execute("ATCV0000").contains("OK"))
+        kotlin.test.assertTrue(engine.execute("ATRV").contains("13.4V"))
+    }
 }
